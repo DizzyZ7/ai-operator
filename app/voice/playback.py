@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from contextlib import suppress
 
-from app.providers.voice import TTSProvider, TelephonyProvider
+from app.providers.voice import TelephonyProvider, TTSProvider
 
 
 class PlaybackController:
