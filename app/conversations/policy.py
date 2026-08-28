@@ -30,6 +30,12 @@ def evaluate_domain_intent(intent: Intent, confidence: float) -> DomainPolicyRes
             reason="intent_out_of_domain",
         )
 
+    if intent is Intent.EMERGENCY_ESCALATION:
+        return DomainPolicyResult(
+            decision=PolicyDecision.HANDOFF,
+            reason="emergency_escalation_required",
+        )
+
     if confidence < 0.55:
         return DomainPolicyResult(
             decision=PolicyDecision.HANDOFF,
