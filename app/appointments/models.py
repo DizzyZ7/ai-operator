@@ -13,6 +13,16 @@ class AppointmentOperationStatus(StrEnum):
     REJECTED = "REJECTED"
 
 
+class PatientAppointment(BaseModel):
+    appointment_id: str = Field(min_length=1)
+    patient_id: str = Field(min_length=1)
+    clinic_id: str = Field(min_length=1)
+    service_id: str = Field(min_length=1)
+    doctor_id: str | None = None
+    starts_at: datetime
+    status: str = Field(min_length=1)
+
+
 class SlotQuery(BaseModel):
     service_id: str = Field(min_length=1)
     starts_after: datetime
@@ -58,6 +68,11 @@ class RescheduleAppointmentRequest(BaseModel):
 
 
 class CancelAppointmentRequest(BaseModel):
+    patient_id: str = Field(min_length=1)
+    appointment_id: str = Field(min_length=1)
+
+
+class ConfirmAppointmentRequest(BaseModel):
     patient_id: str = Field(min_length=1)
     appointment_id: str = Field(min_length=1)
 
