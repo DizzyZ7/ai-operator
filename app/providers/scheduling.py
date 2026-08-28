@@ -6,6 +6,7 @@ from app.appointments.models import (
     AppointmentOperationResult,
     AvailableSlot,
     CancelAppointmentRequest,
+    ConfirmAppointmentRequest,
     CreateAppointmentRequest,
     RescheduleAppointmentRequest,
     SlotQuery,
@@ -32,6 +33,13 @@ class SchedulingProvider(Protocol):
     async def cancel_appointment(
         self,
         request: CancelAppointmentRequest,
+        *,
+        idempotency_key: str,
+    ) -> AppointmentOperationResult: ...
+
+    async def confirm_appointment(
+        self,
+        request: ConfirmAppointmentRequest,
         *,
         idempotency_key: str,
     ) -> AppointmentOperationResult: ...
