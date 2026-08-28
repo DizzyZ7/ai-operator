@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable
+from collections.abc import Awaitable, Callable
+from typing import Any
 
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from app.appointments.access import (
     AppointmentAuthorizationError,
@@ -21,11 +22,18 @@ from app.idempotency.store import IdempotencyConflict, IdempotencyStore
 from app.providers.scheduling import SchedulingProvider
 from app.security.identity import IdentityAuthorizationError
 from app.tools.catalog import TOOL_SPECS_BY_NAME
-from app.tools.contracts import ToolExecutionContext, ToolResult
+from app.tools.contracts import ToolExecutionContext, ToolResult, ToolSpec
 from app.tools.fingerprint import stable_request_fingerprint
 
-MutationRequest = RescheduleAppointmentRequest | CancelAppointmentRequest | ConfirmAppointmentRequest
-MutationCall = Callable[[MutationRequest, str], Awaitable[AppointmentOperationResult]]
+MutationRequest = (
+    RescheduleAppointmentRequest
+    | CancelAppointmentRequest
+    | ConfirmAppointmentRequest
+)
+MutationCall = Callable[
+    [MutationRequest, str],
+    Awaitable[AppointmentOperationResult],
+]
 
 
 def _authorize_existing_appointment(
@@ -80,7 +88,7 @@ def _map_operation_result(result: AppointmentOperationResult) -> ToolResult:
 
 class _ExistingAppointmentMutation:
     spec_name: str
-    request_model: type[BaseModel]
+    spec: ToolSpec
 
     def __init__(
         self,
@@ -100,12 +108,10 @@ class _ExistingAppointmentMutation:
         if context.idempotency_key is None:
             return ToolResult(success=False, error_code="idempotency_key_missing")
 
-        patient_id = request.patient_id
-        appointment_id = request.appointment_id
         unauthorized = _authorize_existing_appointment(
             context,
-            patient_id=patient_id,
-            appointment_id=appointment_id,
+            patient_id=request.patient_id,
+            appointment_id=request.appointment_id,
         )
         if unauthorized is not None:
             return unauthorized
@@ -156,7 +162,6 @@ class _ExistingAppointmentMutation:
 
 class RescheduleAppointmentTool(_ExistingAppointmentMutation):
     spec_name = "reschedule_appointment"
-    request_model = RescheduleAppointmentRequest
 
     async def execute(
         self,
@@ -183,7 +188,6 @@ class RescheduleAppointmentTool(_ExistingAppointmentMutation):
 
 class CancelAppointmentTool(_ExistingAppointmentMutation):
     spec_name = "cancel_appointment"
-    request_model = CancelAppointmentRequest
 
     async def execute(
         self,
@@ -210,7 +214,6 @@ class CancelAppointmentTool(_ExistingAppointmentMutation):
 
 class ConfirmAppointmentTool(_ExistingAppointmentMutation):
     spec_name = "confirm_appointment"
-    request_model = ConfirmAppointmentRequest
 
     async def execute(
         self,
