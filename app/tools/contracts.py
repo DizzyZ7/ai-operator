@@ -19,6 +19,7 @@ class ToolExecutionContext(BaseModel):
     actor: str = "ai_operator"
     permissions: frozenset[str] = Field(default_factory=frozenset)
     idempotency_key: str | None = None
+    resource_grants: dict[str, frozenset[str]] = Field(default_factory=dict)
 
 
 class ToolResult(BaseModel):
