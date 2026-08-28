@@ -6,7 +6,7 @@ This repository is intentionally not a general-purpose assistant. The core produ
 
 ## Current phase
 
-Phase 0/1 — discovery and architecture foundation.
+Phase 0/1 — discovery, architecture foundation and production-hardening primitives.
 
 Implemented foundation:
 - backend-owned conversation state;
@@ -21,8 +21,16 @@ Implemented foundation:
 - call-scoped resource grants for trusted offered slots;
 - safe create-appointment reference tool;
 - idempotency replay/conflict/uncertain-outcome handling;
+- cancellable realtime playback and barge-in primitives;
+- structured handoff and call-summary models;
+- deterministic failure fallback;
+- versioned conversation persistence contract with optimistic concurrency;
+- Redis-like ephemeral coordination contract;
+- PII sanitization and safe audit sink;
+- provider-neutral metrics and tracing ports;
+- `CallSessionCoordinator` for finalized-turn orchestration;
 - FastAPI service skeleton;
-- regression tests for core safety/state/action rules;
+- regression tests for safety, state, concurrency, realtime and mutation invariants;
 - architecture, discovery, ADR and threat-model documentation;
 - CI baseline.
 
@@ -30,7 +38,9 @@ Not implemented yet:
 - real telephony provider;
 - real STT/TTS/LLM provider;
 - real CRM/MIS/scheduling integration;
-- durable production idempotency store;
+- PostgreSQL/Redis concrete adapters;
+- OpenTelemetry/Prometheus concrete exporters;
+- durable production idempotency/reconciliation;
 - clinic-specific knowledge base;
 - patient identity policy.
 
@@ -41,13 +51,15 @@ Those integrations remain UNKNOWN until the clinic provides approved systems and
 LLM output is a proposal, never the source of truth.
 
 ```text
-Telephony -> Realtime Voice -> Conversation Orchestrator
-                                  |       |       |
-                                State   Policy   LLM
-                                  \       |      /
-                                   Tool Execution
-                                         |
-                                  CRM / MIS / Schedule
+Telephony -> Realtime Voice -> Call Session Coordinator
+                                 |
+                         Conversation Orchestrator
+                            |       |       |
+                          State   Policy   LLM
+                            \       |      /
+                             Tool Execution
+                                   |
+                            CRM / MIS / Schedule
 ```
 
 Critical mutations are validated, authorized, explicitly confirmed where required, idempotent, resource-scoped, audited, and executed only through backend tools.
@@ -71,11 +83,13 @@ uvicorn app.main:app --reload
 1. Domain lock: clinic business only.
 2. No medical diagnosis or treatment advice.
 3. No hallucinated prices, doctors, slots, addresses, appointments, promotions, or rules.
-4. Server-side state is authoritative.
+4. Server-side state is authoritative and versioned.
 5. LLM never writes SQL or mutates business systems directly.
 6. LLM text is never automatically promoted to trusted business IDs.
 7. Critical actions require idempotency, explicit policy checks and resource authorization.
-8. Human handoff is a first-class successful outcome.
-9. Patient PII is minimized and masked in logs.
-10. Provider abstractions prevent vendor lock-in.
-11. Start as a modular monolith; split only when evidence justifies it.
+8. Stale concurrent workers cannot silently overwrite newer conversation state.
+9. Human handoff is a first-class successful outcome.
+10. Patient PII is minimized and sanitized in audit/log metadata.
+11. Provider abstractions prevent vendor lock-in.
+12. Redis-like state is ephemeral coordination, never business truth.
+13. Start as a modular monolith; split only when evidence justifies it.
