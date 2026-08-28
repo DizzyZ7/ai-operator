@@ -4,6 +4,7 @@ from typing import Any
 
 from fastapi import FastAPI, Response, status
 from prometheus_client import CONTENT_TYPE_LATEST, CollectorRegistry, generate_latest
+from starlette.types import Lifespan
 
 from app.health.service import ReadinessService, default_unconfigured_readiness_service
 
@@ -12,11 +13,13 @@ def create_app(
     readiness_service: ReadinessService | None = None,
     *,
     metrics_registry: CollectorRegistry | None = None,
+    lifespan: Lifespan[FastAPI] | None = None,
 ) -> FastAPI:
     application = FastAPI(
         title="AI Operator",
         version="0.1.0",
         description="Bounded voice AI call-center operator backend",
+        lifespan=lifespan,
     )
     readiness_checks = readiness_service or default_unconfigured_readiness_service()
 
