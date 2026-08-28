@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
 from prometheus_client import CollectorRegistry
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+from app.audit.memory import MemoryAuditSink
 from app.audit.safe import SafeAuditSink
 from app.audit.sink import AuditSink
 from app.config.settings import RuntimeSettings
@@ -34,7 +35,6 @@ from app.observability.tracing import Tracer
 from app.persistence.conversations import ConversationStateRepository
 from app.persistence.ephemeral import EphemeralSessionStore
 from app.persistence.memory import MemoryConversationStateRepository
-from app.audit.memory import MemoryAuditSink
 
 _CRITICAL_PROVIDER_NAMES = ("telephony", "stt", "tts", "llm", "scheduling")
 
