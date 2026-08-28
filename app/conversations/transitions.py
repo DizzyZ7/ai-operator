@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from app.conversations.models import DialogState
 
-
 _ALLOWED_TRANSITIONS: dict[DialogState, frozenset[DialogState]] = {
     DialogState.NEW: frozenset({DialogState.INITIALIZING}),
     DialogState.INITIALIZING: frozenset({DialogState.GREETING, DialogState.FALLBACK}),

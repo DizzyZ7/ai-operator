@@ -41,7 +41,7 @@ class LLMDecision(BaseModel):
     tool: ToolProposal | None = None
 
     @model_validator(mode="after")
-    def validate_tool_shape(self) -> "LLMDecision":
+    def validate_tool_shape(self) -> LLMDecision:
         if self.next_action is NextAction.REQUEST_TOOL and self.tool is None:
             raise ValueError("REQUEST_TOOL requires a tool proposal")
         if self.next_action is not NextAction.REQUEST_TOOL and self.tool is not None:

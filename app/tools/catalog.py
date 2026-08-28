@@ -1,42 +1,25 @@
 from app.tools.contracts import ToolRisk, ToolSpec
 
-
 TOOL_SPECS: tuple[ToolSpec, ...] = (
-    ToolSpec(
-        name="search_patient",
-        risk=ToolRisk.READ,
-        required_permission="patients:read",
-    ),
+    ToolSpec(name="search_patient", risk=ToolRisk.READ, required_permission="patients:read"),
     ToolSpec(
         name="get_patient_appointments",
         risk=ToolRisk.READ,
         required_permission="appointments:read",
     ),
-    ToolSpec(
-        name="search_clinics",
-        risk=ToolRisk.READ,
-        required_permission="clinics:read",
-    ),
+    ToolSpec(name="search_clinics", risk=ToolRisk.READ, required_permission="clinics:read"),
     ToolSpec(
         name="get_clinic_information",
         risk=ToolRisk.READ,
         required_permission="clinics:read",
     ),
-    ToolSpec(
-        name="search_services",
-        risk=ToolRisk.READ,
-        required_permission="services:read",
-    ),
+    ToolSpec(name="search_services", risk=ToolRisk.READ, required_permission="services:read"),
     ToolSpec(
         name="get_service_information",
         risk=ToolRisk.READ,
         required_permission="services:read",
     ),
-    ToolSpec(
-        name="search_doctors",
-        risk=ToolRisk.READ,
-        required_permission="doctors:read",
-    ),
+    ToolSpec(name="search_doctors", risk=ToolRisk.READ, required_permission="doctors:read"),
     ToolSpec(
         name="get_available_slots",
         risk=ToolRisk.READ,
@@ -119,6 +102,5 @@ TOOL_SPECS: tuple[ToolSpec, ...] = (
         required_permission="knowledge:read",
     ),
 )
-
 
 TOOL_SPECS_BY_NAME: dict[str, ToolSpec] = {spec.name: spec for spec in TOOL_SPECS}
