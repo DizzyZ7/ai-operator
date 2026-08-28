@@ -5,6 +5,7 @@ from app.appointments.models import (
     AppointmentOperationStatus,
     AvailableSlot,
     CancelAppointmentRequest,
+    ConfirmAppointmentRequest,
     CreateAppointmentRequest,
     RescheduleAppointmentRequest,
     SlotQuery,
@@ -17,10 +18,15 @@ class FakeSchedulingProvider:
         *,
         slots: list[AvailableSlot] | None = None,
         timeout_on_create: bool = False,
+        timeout_on_existing_mutation: bool = False,
     ) -> None:
         self.slots = slots or []
         self.timeout_on_create = timeout_on_create
+        self.timeout_on_existing_mutation = timeout_on_existing_mutation
         self.create_calls = 0
+        self.reschedule_calls = 0
+        self.cancel_calls = 0
+        self.confirm_calls = 0
 
     async def get_available_slots(self, query: SlotQuery) -> list[AvailableSlot]:
         return [
@@ -58,8 +64,17 @@ class FakeSchedulingProvider:
         *,
         idempotency_key: str,
     ) -> AppointmentOperationResult:
-        del request, idempotency_key
-        return AppointmentOperationResult(status=AppointmentOperationStatus.REJECTED)
+        del idempotency_key
+        self.reschedule_calls += 1
+        if self.timeout_on_existing_mutation:
+            raise TimeoutError
+        if not any(slot.slot_id == request.target_slot_id for slot in self.slots):
+            return AppointmentOperationResult(status=AppointmentOperationStatus.CONFLICT)
+        return AppointmentOperationResult(
+            status=AppointmentOperationStatus.SUCCEEDED,
+            appointment_id=request.appointment_id,
+            external_reference=f"rescheduled:{request.appointment_id}",
+        )
 
     async def cancel_appointment(
         self,
@@ -67,5 +82,28 @@ class FakeSchedulingProvider:
         *,
         idempotency_key: str,
     ) -> AppointmentOperationResult:
-        del request, idempotency_key
-        return AppointmentOperationResult(status=AppointmentOperationStatus.REJECTED)
+        del idempotency_key
+        self.cancel_calls += 1
+        if self.timeout_on_existing_mutation:
+            raise TimeoutError
+        return AppointmentOperationResult(
+            status=AppointmentOperationStatus.SUCCEEDED,
+            appointment_id=request.appointment_id,
+            external_reference=f"cancelled:{request.appointment_id}",
+        )
+
+    async def confirm_appointment(
+        self,
+        request: ConfirmAppointmentRequest,
+        *,
+        idempotency_key: str,
+    ) -> AppointmentOperationResult:
+        del idempotency_key
+        self.confirm_calls += 1
+        if self.timeout_on_existing_mutation:
+            raise TimeoutError
+        return AppointmentOperationResult(
+            status=AppointmentOperationStatus.SUCCEEDED,
+            appointment_id=request.appointment_id,
+            external_reference=f"confirmed:{request.appointment_id}",
+        )
