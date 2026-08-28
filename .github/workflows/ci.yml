@@ -1,1 +1,57 @@
-name: CI\n\non:\n  push:\n    branches: ["main", "foundation/**"]\n  pull_request:\n\npermissions:\n  contents: read\n\njobs:\n  test:\n    runs-on: ubuntu-latest\n    services:\n      postgres:\n        image: postgres:17-alpine\n        env:\n          POSTGRES_DB: ai_operator\n          POSTGRES_USER: ai_operator\n          POSTGRES_PASSWORD: ci-password\n        ports:\n          - 5432:5432\n        options: >-\n          --health-cmd "pg_isready -U ai_operator -d ai_operator"\n          --health-interval 5s\n          --health-timeout 3s\n          --health-retries 10\n      redis:\n        image: redis:8-alpine\n        ports:\n          - 6379:6379\n        options: >-\n          --health-cmd "redis-cli ping"\n          --health-interval 5s\n          --health-timeout 3s\n          --health-retries 10\n    env:\n      TEST_DATABASE_URL: postgresql+asyncpg://ai_operator:ci-password@localhost:5432/ai_operator\n      TEST_REDIS_URL: redis://localhost:6379/0\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-python@v5\n        with:\n          python-version: "3.12"\n          cache: pip\n      - name: Install\n        run: pip install -e ".[dev]"\n      - name: Ruff\n        run: ruff check .\n      - name: Mypy\n        run: mypy app\n      - name: Migrate PostgreSQL\n        env:\n          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}\n        run: alembic upgrade head\n      - name: Pytest\n        run: pytest\n
+name: CI
+
+on:
+  push:
+    branches: ["main", "foundation/**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: ai_operator
+          POSTGRES_USER: ai_operator
+          POSTGRES_PASSWORD: ci-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ai_operator -d ai_operator"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql+asyncpg://ai_operator:ci-password@localhost:5432/ai_operator
+      TEST_REDIS_URL: redis://localhost:6379/0
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: pip install -e ".[dev]"
+      - name: Ruff
+        run: ruff check .
+      - name: Mypy
+        run: mypy app
+      - name: Migrate PostgreSQL
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+        run: alembic upgrade head
+      - name: Pytest
+        run: pytest
