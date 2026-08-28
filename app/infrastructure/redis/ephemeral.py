@@ -59,10 +59,11 @@ class RedisEphemeralSessionStore:
         *,
         owner: str,
     ) -> bool:
-        released: Any = await self._client.eval(
+        pending: Any = self._client.eval(
             _RELEASE_LOCK_SCRIPT,
             1,
             f"lock:{key}",
             owner,
         )
+        released: Any = await pending
         return int(released) == 1
