@@ -12,7 +12,7 @@ from app.observability.tracing import NoopTracer
 from app.persistence.memory import MemoryConversationStateRepository
 from app.voice.playback import PlaybackController
 from tests.fakes.llm import FakeLLMProvider
-from tests.fakes.voice import FakeTTSProvider, FakeTelephonyProvider
+from tests.fakes.voice import FakeTelephonyProvider, FakeTTSProvider
 
 
 def initial_state() -> ConversationState:
@@ -128,15 +128,17 @@ async def test_speech_start_interrupts_active_playback() -> None:
             next_action=NextAction.ASK_CLARIFYING_QUESTION,
         )
     )
-    session = coordinator(
+    playback = PlaybackController(tts=FakeTTSProvider(), telephony=telephony)
+    session = CallSessionCoordinator(
+        state_repository=repository,
         llm=llm,
-        repository=repository,
-        audit=audit,
+        orchestrator=ConversationOrchestrator(),
+        playback=playback,
+        audit=SafeAuditSink(audit),
         metrics=metrics,
-        telephony=telephony,
+        tracer=NoopTracer(),
     )
 
-    playback = session._playback
     await playback.start(call_id="call-1", text="long response")
     await telephony.send_started.wait()
 
