@@ -28,27 +28,39 @@ Implemented foundation:
 - cancellable realtime playback and barge-in primitives;
 - structured handoff and call-summary models;
 - deterministic failure fallback;
-- versioned conversation persistence contract with optimistic concurrency;
-- Redis-like ephemeral coordination contract;
+- versioned conversation persistence with optimistic concurrency;
+- async SQLAlchemy/PostgreSQL conversation repository;
+- durable PostgreSQL idempotency repository;
+- PostgreSQL audit sink;
+- Alembic migration foundation;
+- Redis-backed TTL/session coordination and owner-safe distributed locks;
 - PII sanitization and safe audit sink;
-- provider-neutral metrics and tracing ports;
+- Prometheus metrics adapter with bounded labels;
+- OpenTelemetry tracing adapter;
+- database/Redis/provider health probes;
 - dependency-aware liveness/readiness;
 - production configuration validation with secret-safe summaries;
 - approved knowledge/RAG trust boundary with validity windows;
+- runtime composition root and managed FastAPI lifespan;
+- non-root Docker image;
+- local PostgreSQL/Redis Docker Compose stack;
 - `CallSessionCoordinator` for finalized-turn orchestration;
 - regression/adversarial tests for safety, state, authorization, concurrency, realtime and mutation invariants;
-- architecture, discovery, ADR and threat-model documentation;
-- CI with Ruff, strict mypy and pytest.
+- real PostgreSQL 17 + Redis 8 integration tests in CI;
+- real `alembic upgrade head` against PostgreSQL in CI;
+- architecture, operations, ADR and threat-model documentation;
+- CI with Ruff, strict mypy, pytest and Docker image build validation.
 
 Not implemented yet:
 - concrete production telephony/STT/TTS/LLM providers;
-- concrete CRM/MIS/scheduling APIs;
-- PostgreSQL/Redis concrete adapters;
-- OpenTelemetry/Prometheus concrete exporters;
+- concrete clinic CRM/MIS/scheduling APIs;
 - provider-specific mutation reconciliation;
 - clinic-approved identity-verification mechanism;
 - clinic-approved emergency ruleset;
 - real production knowledge corpus;
+- production secret-manager integration;
+- OpenTelemetry exporter/backend configuration;
+- Kubernetes manifests and production deployment policy;
 - medical advice logic.
 
 Those items remain UNKNOWN or intentionally blocked until the clinic provides approved systems, policies and contracts.
@@ -83,17 +95,33 @@ Existing appointment mutations require both verified patient identity and truste
 
 Statements such as "appointment created", "cancelled", "rescheduled" or "confirmed" require backend evidence from a successful validated tool result and trusted state reduction.
 
-## Health endpoints
+## Persistence and coordination
+
+PostgreSQL is the durable runtime store for conversation state, audit data and critical mutation idempotency.
+
+Redis is intentionally limited to ephemeral coordination such as TTL-backed session values and distributed locks. Losing Redis must not erase transactional evidence required to prevent duplicate patient mutations.
+
+The initial schema is managed by Alembic:
+
+```bash
+alembic upgrade head
+```
+
+## Health and observability
 
 `/health/live` answers whether the process is alive.
 
 `/health/ready` answers whether the instance can safely receive the core production call path.
 
-The repository default intentionally returns HTTP 503 from readiness because real critical providers are not configured. A development process being alive is not the same claim as production traffic being safe.
+The repository default intentionally returns HTTP 503 from readiness because real critical providers are not configured. A provider name alone is not enough: a real health probe must be bound.
+
+A runtime application exposes `/metrics` through a dedicated Prometheus registry. High-cardinality call/conversation identifiers are kept out of Prometheus labels and belong in tracing/log correlation.
 
 ## Local development
 
 Requires Python 3.12+.
+
+Application-only development:
 
 ```bash
 python -m venv .venv
@@ -102,6 +130,15 @@ pip install -e ".[dev]"
 pytest
 uvicorn app.main:app --reload
 ```
+
+Infrastructure-backed development:
+
+```bash
+docker compose up --build
+docker compose exec app alembic upgrade head
+```
+
+The runtime Docker entrypoint is `app.runtime:app`.
 
 ## Core principles
 
@@ -119,6 +156,8 @@ uvicorn app.main:app --reload
 12. Human handoff is a first-class successful outcome.
 13. Patient PII is minimized and sanitized in audit/log metadata.
 14. Provider abstractions prevent vendor lock-in.
-15. Redis-like state is ephemeral coordination, never business truth.
+15. PostgreSQL owns durable application truth; Redis is ephemeral coordination.
 16. Production configuration cannot silently retain unconfigured critical providers.
-17. Start as a modular monolith; split only when evidence justifies it.
+17. Readiness is evidence-based and fails closed.
+18. Infrastructure SDKs stay behind adapters/composition root.
+19. Start as a modular monolith; split only when evidence justifies it.
