@@ -55,3 +55,5 @@ jobs:
         run: alembic upgrade head
       - name: Pytest
         run: pytest
+      - name: Docker build
+        run: docker build --tag ai-operator:ci .
