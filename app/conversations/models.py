@@ -78,6 +78,7 @@ class ConversationState(BaseModel):
     service_id: str | None = None
     doctor_id: str | None = None
     appointment_id: str | None = None
+    authorized_appointment_ids: frozenset[str] = Field(default_factory=frozenset)
 
     preferred_date: str | None = None
     preferred_time: str | None = None
