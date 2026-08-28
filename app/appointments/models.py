@@ -68,6 +68,12 @@ class AppointmentOperationResult(BaseModel):
     external_reference: str | None = None
     error_code: str | None = None
 
+    @model_validator(mode="after")
+    def validate_success_shape(self) -> AppointmentOperationResult:
+        if self.status is AppointmentOperationStatus.SUCCEEDED and not self.appointment_id:
+            raise ValueError("Successful appointment operation requires appointment_id")
+        return self
+
     @property
     def succeeded(self) -> bool:
         return self.status is AppointmentOperationStatus.SUCCEEDED
