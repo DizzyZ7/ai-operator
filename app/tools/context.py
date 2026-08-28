@@ -23,5 +23,10 @@ def build_tool_execution_context(
         correlation_id=correlation_id,
         permissions=permissions,
         idempotency_key=idempotency_key,
-        resource_grants={"slot_id": allowed_slot_ids},
+        identity_verified=state.patient.identity_verified,
+        verified_patient_id=state.patient.external_patient_id,
+        resource_grants={
+            "slot_id": allowed_slot_ids,
+            "appointment_id": state.authorized_appointment_ids,
+        },
     )
