@@ -3,10 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from contextlib import AbstractContextManager
 from types import TracebackType
-from typing import Self
 
 from opentelemetry import trace
-from opentelemetry.trace import Span, Tracer as OtelTracer
+from opentelemetry.trace import Span
+from opentelemetry.trace import Tracer as OtelTracer
 
 
 class _SpanAdapter:
