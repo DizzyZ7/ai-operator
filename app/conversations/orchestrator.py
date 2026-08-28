@@ -135,3 +135,37 @@ class ConversationOrchestrator:
             action=OrchestratorAction.HANDOFF,
             reason="unsupported_next_action",
         )
+
+    def process_confirmation(
+        self,
+        state: ConversationState,
+        *,
+        confirmed: bool,
+    ) -> OrchestrationResult:
+        updated = state.model_copy(deep=True)
+        pending = updated.pending_action
+
+        if pending is None or not pending.requires_confirmation:
+            updated.require_handoff("unexpected_confirmation")
+            return OrchestrationResult(
+                state=updated,
+                action=OrchestratorAction.HANDOFF,
+                reason="unexpected_confirmation",
+            )
+
+        if not confirmed:
+            updated.pending_action = None
+            updated.dialog_state = DialogState.RESPONDING
+            return OrchestrationResult(
+                state=updated,
+                action=OrchestratorAction.RESPOND,
+                reason="mutation_declined",
+            )
+
+        pending.confirmed = True
+        updated.dialog_state = DialogState.TOOL_EXECUTION
+        return OrchestrationResult(
+            state=updated,
+            action=OrchestratorAction.EXECUTE_TOOL,
+            reason="mutation_confirmed",
+        )
