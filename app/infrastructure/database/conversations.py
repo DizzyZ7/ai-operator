@@ -61,7 +61,7 @@ class SqlAlchemyConversationStateRepository:
     ) -> VersionedConversationState:
         next_version = expected_version + 1
         async with self._sessions() as session:
-            result = await session.execute(
+            execution = await session.execute(
                 update(ConversationStateRow)
                 .where(
                     ConversationStateRow.conversation_id == state.conversation_id,
@@ -72,9 +72,11 @@ class SqlAlchemyConversationStateRepository:
                     state_json=state.model_dump(mode="json"),
                     version=next_version,
                 )
+                .returning(ConversationStateRow.conversation_id)
             )
+            updated_id = execution.scalar_one_or_none()
 
-            if result.rowcount != 1:
+            if updated_id is None:
                 await session.rollback()
                 exists = await session.scalar(
                     select(ConversationStateRow.conversation_id).where(
